@@ -8,7 +8,7 @@ import csv  # Thêm
 import os   # Thêm
 
 # THÊM: Cấu hình file đầu ra
-OUTPUT_FILE = "patient_data_sample.csv"
+OUTPUT_FILE = "patient_data_sample.json"
 NUMBER_OF_RECORDS = 5000 # Anh muốn tạo bao nhiêu dòng thì sửa ở đây
 
 # #Eventhub Configuration
