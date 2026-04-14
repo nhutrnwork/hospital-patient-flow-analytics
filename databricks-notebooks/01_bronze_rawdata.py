@@ -2,8 +2,8 @@ from pyspark.sql.functions import *
 
 # Azure Event Hub Configuration
 event_hub_namespace = "<<Namespace_hostname>>"
-event_hub_name="<<Eventhub_Name>>"  
-event_hub_conn_str = "<<Connection_string>>"
+event_hub_name="<<Eventhub_Name>>"
+event_hub_conn_str = dbutils.secrets.get(scope = "<<Scope_name>>", key = "<<Secretkey_name>>")
 
 kafka_options = {
     'kafka.bootstrap.servers': f"{event_hub_namespace}:9093",

@@ -92,4 +92,4 @@ for col_name in expected_cols:
 )
 
 #Check
-display(spark.read.format("delta").load(silver_path))
+# display(spark.read.format("delta").load(silver_path))
