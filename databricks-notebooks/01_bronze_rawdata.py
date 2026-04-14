@@ -5,7 +5,6 @@ event_hub_namespace = "<<Namespace_hostname>>"
 event_hub_name="<<Eventhub_Name>>"
 event_hub_conn_str = dbutils.secrets.get(scope = "<<Scope_name>>", key = "<<Secretkey_name>>")
 
-
 kafka_options = {
     'kafka.bootstrap.servers': f"{event_hub_namespace}:9093",
     'subscribe': event_hub_name,
@@ -32,17 +31,15 @@ spark.conf.set(
 )
 
 bronze_path = "abfss://<<container>>@<<Storageaccount_name>>.dfs.core.windows.net/patient_flow"
-checkpoint_path = "abfss://<<container>>@<<Storageaccount_name>>.dfs.core.windows.net/checkpoints/patient_flow"
-
 #Write stream to bronze
 (
     json_df
     .writeStream
     .format("delta")
     .outputMode("append")
-    .option("checkpointLocation", checkpoint_path)
+    .option("checkpointLocation", bronze_path + "_checkpoint")
     .start(bronze_path)
 )
 
 # Check
-display(spark.read.format("delta").load(bronze_path))
+# display(spark.read.format("delta").load(bronze_path))

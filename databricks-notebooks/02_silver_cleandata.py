@@ -23,34 +23,59 @@ schema = StructType([
     StructField("gender", StringType()),
     StructField("age", IntegerType()),
     StructField("department", StringType()),
-    StructField("admission_time", StringType()),
-    StructField("discharge_time", StringType()),
-    StructField("bed_id", IntegerType()),
-    StructField("hospital_id", IntegerType())
+    StructField("hospital_id", IntegerType()),
+    StructField("bed_id", StringType()),
+    StructField("activity_type", StringType()),
+    StructField("activity_time", StringType())
+    
 ])
 
 #Parse it to dataframe
 parsed_df = bronze_df.withColumn("data",from_json(col("raw_json"),schema)).select("data.*")
 
 #convert type to Timestamp
-clean_df = parsed_df.withColumn("admission_time", to_timestamp("admission_time"))
-clean_df = clean_df.withColumn("discharge_time", to_timestamp("discharge_time"))
+clean_df = parsed_df.withColumn("activity_time", to_timestamp("activity_time"))
 
-#invalid admission_times
-clean_df = clean_df.withColumn("admission_time",
-                               when(
-                                   col("admission_time").isNull() | (col("admission_time") > current_timestamp()),
-                                   current_timestamp())
-                               .otherwise(col("admission_time")))
+#future/null activity_times
+clean_df = clean_df.withColumn(
+    "activity_time",
+    when(
+        col("activity_time").isNull() | (col("activity_time") > current_timestamp()),
+        current_timestamp()
+        ).otherwise(col("activity_time")))
 
-#Handle Invalid Age
-clean_df = clean_df.withColumn("age",
-                               when(col("age")>100,floor(rand()*90+1).cast("int"))
-                               .otherwise(col("age"))
-                               )
+# Dedup + watermark
+clean_df = clean_df \
+    .withWatermark("activity_time", "10 minutes") \
+    .dropDuplicates([
+        "patient_id",
+        "bed_id",
+        "activity_type",
+        "activity_time"
+    ])
 
+# Handle Gender
+clean_df = clean_df.withColumn(
+    "gender",
+    when(upper(col("gender")).isin("M", "MALE"), "Male")
+    .when(upper(col("gender")).isin("F", "FEMALE"), "Female")
+    .otherwise("Unknown")
+)
+#---Flag gender
+clean_df = clean_df.withColumn(
+    "unknown_gender",
+    col("gender") == "Unknown"
+)
+
+# Flag Invalid Age
+clean_df = clean_df.withColumn(
+    "invalid_age",
+    (col("age") > 110) | (col("age") <= 0)
+)
+
+#--------------------
 #schema evolution
-expected_cols = ["patient_id", "gender", "age", "department", "admission_time", "discharge_time", "bed_id", "hospital_id"]
+expected_cols = ["patient_id", "gender", "age", "department", "hospital_id", "bed_id", "activity_type", "activity_time"]
 
 for col_name in expected_cols:
     if col_name not in clean_df.columns:
